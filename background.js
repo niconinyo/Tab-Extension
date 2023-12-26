@@ -46,9 +46,19 @@ async function checkOrCreateFolder(folderName) {
 async function processTab(tabId) {
     try {
         let openDuration = Date.now() - tabTimes[tabId];
-        console.log("Tab was open for: ", openDuration, " hours.");
+        let timeLimit = 48 * 60 * 60 * 1000; // 48 hours in milliseconds
 
-        if (openDuration > 48 * 60 * 60 * 1000) {
+        // Notify 5 minutes before bookmarking
+        let notifyTime = 5 * 60 * 1000; // 5 minutes in milliseconds
+
+        // Check if the tab is within the notification period
+        if (openDuration > timeLimit - notifyTime && openDuration < timeLimit) {
+            // Send message to content script
+            chrome.tabs.sendMessage(tabId, { action: "showNotification" });
+        }
+
+        // Bookmark and close logic
+        if (openDuration > timeLimit) {
             const folderId = await checkOrCreateFolder("Clutter");
             const tabInfo = tabDetails[tabId];
             if (tabInfo && tabInfo.url) {
@@ -60,7 +70,6 @@ async function processTab(tabId) {
         console.error("Error processing tab: ", error);
     }
 }
-
 // Setup periodic check for tabs
 setInterval(() => {
     chrome.tabs.query({}, (tabs) => {
