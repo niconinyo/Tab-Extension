@@ -42,20 +42,12 @@ async function checkOrCreateFolder(folderName) {
 
 
 
+
 // Function to handle tab processing
 async function processTab(tabId) {
     try {
         let openDuration = Date.now() - tabTimes[tabId];
         let timeLimit = 48 * 60 * 60 * 1000; // 48 hours in milliseconds
-
-        // Notify 5 minutes before bookmarking
-        let notifyTime = 5 * 60 * 1000; // 5 minutes in milliseconds
-
-        // Check if the tab is within the notification period
-        if (openDuration > timeLimit - notifyTime && openDuration < timeLimit) {
-            // Send message to content script
-            chrome.tabs.sendMessage(tabId, { action: "showNotification" });
-        }
 
         // Bookmark and close logic
         if (openDuration > timeLimit) {
@@ -70,11 +62,34 @@ async function processTab(tabId) {
         console.error("Error processing tab: ", error);
     }
 }
+
+
+async function getTabsNearingClosure(timeLimit, notifyTime) {
+    let tabsToNotify = [];
+    const tabs = await chrome.tabs.query({});
+    for (let tab of tabs) {
+        let openDuration = Date.now() - (tabTimes[tab.id] || 0);
+        if (openDuration > timeLimit - notifyTime && openDuration < timeLimit) {
+            tabsToNotify.push(tab.title);
+        }
+    }
+    return tabsToNotify;
+}
 // Setup periodic check for tabs
-setInterval(() => {
-    chrome.tabs.query({}, (tabs) => {
-        tabs.forEach(tab => processTab(tab.id));
-    });
+setInterval(async () => {
+    const timeLimit = 48 * 60 * 60 * 1000; // 48 hours in milliseconds
+    const notifyTime = 8 * 60 * 60 * 1000; // 8 hours in milliseconds
+    const tabsToNotify = await getTabsNearingClosure(timeLimit, notifyTime);
+
+    if (tabsToNotify.length > 0) {
+        const message = `The following tabs will be bookmarked soon due to inactivity: ${tabsToNotify.join(', ')}`;
+        chrome.notifications.create({
+            type: 'basic',
+            iconUrl: 'icon.png',
+            title: 'Tab Notification',
+            message: message
+        });
+    }
 }, 1000 * 60 * 60); // Check every hour
 
 // Clean up on tab removal
