@@ -3,6 +3,9 @@ let tabDetails = {};
 let bookmarkFolderId = null;
 let ignoredUrls = [];
 
+//48 hour time limit
+const defaultTimeLimit = 48 * 60 * 60 * 1000;
+
 // Loads ignored URLs from storage
 chrome.storage.sync.get(['ignoredUrls'], (result) => {
     ignoredUrls = result.ignoredUrls || [];
@@ -92,11 +95,18 @@ async function urlExistsInAnyFolder(url, excludeFolderId) {
     return bookmarks.some(bookmark => bookmark.parentId !== excludeFolderId);
 }
 
+
+
 // Setup periodic check for tabs
 setInterval(async () => {
-    const timeLimit = 48 * 60 * 60 * 1000; // 48 hours in milliseconds
+    let customTimeLimit = await new Promise(resolve => {
+        chrome.storage.sync.get(['customTimeLimit'], (result) => {
+            resolve(result.customTimeLimit ? result.customTimeLimit * 60 * 60 * 1000 : defaultTimeLimit);
+        });
+    });
+
     const notifyTime = 8 * 60 * 60 * 1000; // 8 hours in milliseconds
-    const tabsToNotify = await getTabsNearingClosure(timeLimit, notifyTime);
+    const tabsToNotify = await getTabsNearingClosure(customTimeLimit, notifyTime);
 
     if (tabsToNotify.length > 0) {
         const message = `The following tabs will be bookmarked soon due to inactivity: ${tabsToNotify.join(', ')}`;

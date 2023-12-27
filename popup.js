@@ -4,3 +4,10 @@ document.getElementById('saveIgnoredUrls').addEventListener('click', () => {
         console.log('Ignored URLs are saved');
     });
 });
+
+document.getElementById('saveCustomTimeLimit').addEventListener('click', () => {
+    let customTimeLimit = document.getElementById('customTimeLimit').value;
+    chrome.storage.sync.set({ customTimeLimit: customTimeLimit }, () => {
+        console.log('Custom time limit saved');
+    });
+});
