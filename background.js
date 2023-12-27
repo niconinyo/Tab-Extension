@@ -26,6 +26,8 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     }
 });
 
+
+
 // Retrieves the structure of the bookmark tree
 // Identifies the bookmarks bar
 // Creates new bookmark folder
